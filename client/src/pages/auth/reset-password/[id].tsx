@@ -2,7 +2,7 @@ import { Alert, AlertIcon, Button, Flex, Link } from '@chakra-ui/react';
 import { Form, Formik, FormikHelpers, FormikProps } from 'formik';
 import { NextPage } from 'next';
 import { withUrqlClient } from 'next-urql';
-import router from 'next/dist/client/router';
+import { useRouter } from 'next/dist/client/router';
 import React, { Fragment } from 'react';
 import { useState } from 'react';
 import { InputField } from '../../../components/common/InputField';
@@ -17,7 +17,8 @@ interface UserInput {
   errors?: string[];
 }
 
-const ResetPassword: NextPage<{ id: string }> = ({ id }) => {
+const ResetPassword: NextPage<{ id: string }> = () => {
+  const router = useRouter();
   const [, changePassword] = useChangePasswordMutation();
   const [tokenError, setTokenError] = useState('');
 
@@ -28,10 +29,11 @@ const ResetPassword: NextPage<{ id: string }> = ({ id }) => {
         onSubmit={async (values: UserInput, helpers: FormikHelpers<UserInput>) => {
           helpers.setSubmitting(true);
           const { data } = await changePassword({
-            input: { token: id, newPassword: values.newPassword },
+            input: {
+              token: typeof router.query.id === 'string' ? router.query.id : '',
+              newPassword: values.newPassword,
+            },
           });
-
-          console.log(data);
 
           if (data?.changePassword?.errors) {
             const errMap = toErrorMap(data?.changePassword?.errors);
@@ -88,13 +90,6 @@ const ResetPassword: NextPage<{ id: string }> = ({ id }) => {
       </Formik>
     </Wrapper>
   );
-};
-
-//get props de url
-ResetPassword.getInitialProps = ({ query }) => {
-  return {
-    id: query.id as string,
-  };
 };
 
 export default withUrqlClient(createUrqlClient, { ssr: false })(ResetPassword);

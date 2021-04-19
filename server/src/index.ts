@@ -1,18 +1,16 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import express from 'express';
-import { MikroORM } from '@mikro-orm/core';
 import { __prod__ } from './constants';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { PostResolver } from './resolvers/posts/post';
 import { UserResolver } from './resolvers/users/user';
-import { Post } from './entities/Post';
-import { User } from './entities/User';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import cors from 'cors';
 import Redis from 'ioredis';
+import { INIT_DB } from './config/mongo';
 const PORT = process.env.PORT || 5000;
 
 //Solo para que agregue el userId al session
@@ -53,13 +51,8 @@ declare module 'express-session' {
     })
   );
 
-  const orm = await MikroORM.init({
-    dbName: 'graphReddit',
-    type: 'mongo',
-    clientUrl: process.env.MONGO_URI!,
-    debug: !__prod__ && true,
-    entities: [Post, User],
-  });
+  //INIT DB
+  await INIT_DB();
 
   const server = new ApolloServer({
     schema: await buildSchema({
@@ -67,7 +60,7 @@ declare module 'express-session' {
       validate: false,
     }),
     //accesar en todos los querys y mutations
-    context: ({ req, res }) => ({ em: orm.em, req, res, redis: redisClient }),
+    context: ({ req, res }) => ({ req, res, redis: redisClient }),
   });
 
   server.applyMiddleware({ app, cors: false });

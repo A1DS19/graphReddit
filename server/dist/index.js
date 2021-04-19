@@ -15,18 +15,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 require("reflect-metadata");
 const express_1 = __importDefault(require("express"));
-const core_1 = require("@mikro-orm/core");
 const constants_1 = require("./constants");
 const apollo_server_express_1 = require("apollo-server-express");
 const type_graphql_1 = require("type-graphql");
 const post_1 = require("./resolvers/posts/post");
 const user_1 = require("./resolvers/users/user");
-const Post_1 = require("./entities/Post");
-const User_1 = require("./entities/User");
 const express_session_1 = __importDefault(require("express-session"));
 const connect_redis_1 = __importDefault(require("connect-redis"));
 const cors_1 = __importDefault(require("cors"));
 const ioredis_1 = __importDefault(require("ioredis"));
+const mongo_1 = require("./config/mongo");
 const PORT = process.env.PORT || 5000;
 (() => __awaiter(void 0, void 0, void 0, function* () {
     const app = express_1.default();
@@ -52,19 +50,13 @@ const PORT = process.env.PORT || 5000;
         secret: process.env.REDIS_SECRET,
         resave: false,
     }));
-    const orm = yield core_1.MikroORM.init({
-        dbName: 'graphReddit',
-        type: 'mongo',
-        clientUrl: process.env.MONGO_URI,
-        debug: !constants_1.__prod__ && true,
-        entities: [Post_1.Post, User_1.User],
-    });
+    yield mongo_1.INIT_DB();
     const server = new apollo_server_express_1.ApolloServer({
         schema: yield type_graphql_1.buildSchema({
             resolvers: [post_1.PostResolver, user_1.UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ em: orm.em, req, res, redis: redisClient }),
+        context: ({ req, res }) => ({ req, res, redis: redisClient }),
     });
     server.applyMiddleware({ app, cors: false });
     app.listen(PORT, () => {

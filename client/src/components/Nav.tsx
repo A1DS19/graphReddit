@@ -36,9 +36,12 @@ export const Nav: React.FC<NavProps> = ({}) => {
     body = (
       <Flex>
         <Link href='/profile/me'>
-          <Box mt={2} mr={4}>
-            {data.me.email}
-          </Box>
+          <Box mt={2}>{data.me.email}</Box>
+        </Link>
+        <Link href='/post/create'>
+          <Button ml={3} mr={3}>
+            Crear Post
+          </Button>
         </Link>
         <Button isLoading={logoutFetching} onClick={() => logout()}>
           Salir
@@ -52,7 +55,7 @@ export const Nav: React.FC<NavProps> = ({}) => {
       <Box>
         <Link href='/'>
           <Heading mt={2} cursor='pointer' size='md'>
-            HOME
+            GraphReddit
           </Heading>
         </Link>
       </Box>

@@ -9,43 +9,51 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Post = void 0;
-const core_1 = require("@mikro-orm/core");
-const mongodb_1 = require("@mikro-orm/mongodb");
+exports.PostModel = exports.Post = void 0;
+const typegoose_1 = require("@typegoose/typegoose");
 const type_graphql_1 = require("type-graphql");
+const User_1 = require("./User");
 let Post = class Post {
-    constructor() {
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
-    }
 };
 __decorate([
-    core_1.PrimaryKey({ type: mongodb_1.ObjectId }),
-    __metadata("design:type", mongodb_1.ObjectId)
+    type_graphql_1.Field(() => String),
+    __metadata("design:type", String)
 ], Post.prototype, "_id", void 0);
 __decorate([
+    type_graphql_1.Field(() => Date),
+    __metadata("design:type", Date)
+], Post.prototype, "createdAt", void 0);
+__decorate([
+    type_graphql_1.Field(() => Date),
+    __metadata("design:type", Date)
+], Post.prototype, "updatedAt", void 0);
+__decorate([
     type_graphql_1.Field(() => String),
-    core_1.Property({ type: String }),
+    typegoose_1.Prop({ type: String, required: true }),
     __metadata("design:type", String)
 ], Post.prototype, "title", void 0);
 __decorate([
     type_graphql_1.Field(() => String),
-    core_1.Property({ type: Date }),
-    __metadata("design:type", Object)
-], Post.prototype, "createdAt", void 0);
-__decorate([
-    type_graphql_1.Field(() => String),
-    core_1.Property({ type: Date, onUpdate: () => new Date() }),
-    __metadata("design:type", Object)
-], Post.prototype, "updatedAt", void 0);
-__decorate([
-    type_graphql_1.Field(() => String),
-    core_1.SerializedPrimaryKey({ type: String }),
+    typegoose_1.Prop({ type: String, required: true }),
     __metadata("design:type", String)
-], Post.prototype, "id", void 0);
+], Post.prototype, "text", void 0);
+__decorate([
+    type_graphql_1.Field(() => type_graphql_1.Int),
+    typegoose_1.Prop({ type: Number, required: false, default: 0 }),
+    __metadata("design:type", Number)
+], Post.prototype, "points", void 0);
+__decorate([
+    type_graphql_1.Field(() => User_1.User),
+    typegoose_1.Prop({ ref: User_1.User, required: true }),
+    __metadata("design:type", Object)
+], Post.prototype, "creator", void 0);
 Post = __decorate([
-    type_graphql_1.ObjectType(),
-    core_1.Entity()
+    typegoose_1.modelOptions({
+        options: { customName: 'Post' },
+        schemaOptions: { timestamps: true },
+    }),
+    type_graphql_1.ObjectType()
 ], Post);
 exports.Post = Post;
+exports.PostModel = typegoose_1.getModelForClass(Post);
 //# sourceMappingURL=Post.js.map

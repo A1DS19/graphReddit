@@ -22,46 +22,62 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PostResolver = void 0;
-const Post_1 = require("../../entities/Post");
+const Post_1 = require("../../models/Post");
 const type_graphql_1 = require("type-graphql");
-const sleep_1 = require("../../util/sleep");
 const types_1 = require("./types");
+const isAuth_1 = require("../../middleware/isAuth");
+const User_1 = require("../../models/User");
 let PostResolver = class PostResolver {
-    getPosts({ em }) {
+    textSnippet(root) {
+        return root.text.slice(0, 50);
+    }
+    getPosts(limit, cursor) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield sleep_1.sleep(1000);
-            return em.find(Post_1.Post, {});
+            const realLimit = Math.min(50, limit);
+            const realLimitHasMore = realLimit + 1;
+            let filter = {};
+            if (cursor) {
+                filter = { createdAt: { $lt: cursor } };
+            }
+            const posts = yield Post_1.PostModel.find(filter)
+                .sort({ createdAt: -1 })
+                .limit(realLimitHasMore)
+                .populate('creator');
+            return {
+                posts: posts.slice(0, realLimit),
+                hasMore: posts.length === realLimitHasMore,
+            };
         });
     }
-    getPost(postId, { em }) {
+    getPost(postId) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield em.findOne(Post_1.Post, { id: postId });
+            return yield Post_1.PostModel.findById(postId);
         });
     }
-    createPost(input, { em }) {
+    createPost(input, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const post = em.create(Post_1.Post, input);
-            yield em.persistAndFlush(post);
+            const post = new Post_1.PostModel(Object.assign(Object.assign({}, input), { creator: req.session.userId }));
+            yield post.save();
             return post;
         });
     }
-    updatePost(input, { em }) {
+    updatePost(input) {
         return __awaiter(this, void 0, void 0, function* () {
-            const post = yield em.findOne(Post_1.Post, { id: input.id });
+            const post = yield Post_1.PostModel.findById(input.id);
             if (!post) {
                 return null;
             }
             if (typeof input.title !== 'undefined') {
                 post.title = input.title;
-                em.persistAndFlush(post);
+                yield post.save();
             }
             return post;
         });
     }
-    deletePost(postId, { em }) {
+    deletePost(postId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield em.nativeDelete(Post_1.Post, { id: postId });
+                yield Post_1.PostModel.deleteOne({ _id: postId });
                 return true;
             }
             catch (err) {
@@ -69,25 +85,67 @@ let PostResolver = class PostResolver {
             }
         });
     }
+    vote({ req }, postId, value) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const isUpvote = value !== -1;
+                const user = yield User_1.UserModel.findById(req.session.userId);
+                const userVotedPost = user === null || user === void 0 ? void 0 : user.votedPosts.filter((post) => post.postId === postId);
+                const objUserVote = {
+                    postId: postId,
+                    voteValue: value,
+                };
+                if (userVotedPost[0]) {
+                    yield User_1.UserModel.findByIdAndUpdate(req.session.userId, {
+                        $pull: { votedPosts: { postId: objUserVote.postId } },
+                    });
+                    yield User_1.UserModel.findByIdAndUpdate(req.session.userId, {
+                        $push: { votedPosts: objUserVote },
+                    });
+                    if (userVotedPost[0].voteValue !== value) {
+                        yield Post_1.PostModel.findByIdAndUpdate(postId, isUpvote ? { $inc: { points: 1 } } : { $inc: { points: -1 } });
+                    }
+                    return true;
+                }
+                yield User_1.UserModel.findByIdAndUpdate(req.session.userId, {
+                    $push: { votedPosts: objUserVote },
+                });
+                yield Post_1.PostModel.findByIdAndUpdate(postId, isUpvote ? { $inc: { points: 1 } } : { $inc: { points: -1 } });
+                return true;
+            }
+            catch (err) {
+                console.error(err.message);
+                return false;
+            }
+        });
+    }
 };
 __decorate([
-    type_graphql_1.Query(() => [Post_1.Post]),
-    __param(0, type_graphql_1.Ctx()),
+    type_graphql_1.FieldResolver(() => String),
+    __param(0, type_graphql_1.Root()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], PostResolver.prototype, "textSnippet", null);
+__decorate([
+    type_graphql_1.Query(() => types_1.PaginatedPosts),
+    __param(0, type_graphql_1.Arg('limit', () => type_graphql_1.Int)),
+    __param(1, type_graphql_1.Arg('cursor', () => Date, { nullable: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "getPosts", null);
 __decorate([
     type_graphql_1.Query(() => Post_1.Post, { nullable: true }),
     __param(0, type_graphql_1.Arg('postId', () => String)),
-    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "getPost", null);
 __decorate([
     type_graphql_1.Mutation(() => Post_1.Post),
-    __param(0, type_graphql_1.Args()),
+    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
+    __param(0, type_graphql_1.Arg('input')),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [types_1.createPostInput, Object]),
@@ -95,22 +153,32 @@ __decorate([
 ], PostResolver.prototype, "createPost", null);
 __decorate([
     type_graphql_1.Mutation(() => Post_1.Post, { nullable: true }),
-    __param(0, type_graphql_1.Args()),
-    __param(1, type_graphql_1.Ctx()),
+    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
+    __param(0, type_graphql_1.Arg('input')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [types_1.updatePostInput, Object]),
+    __metadata("design:paramtypes", [types_1.updatePostInput]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "updatePost", null);
 __decorate([
     type_graphql_1.Mutation(() => Boolean),
+    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
     __param(0, type_graphql_1.Arg('postId')),
-    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "deletePost", null);
+__decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
+    __param(0, type_graphql_1.Ctx()),
+    __param(1, type_graphql_1.Arg('postId')),
+    __param(2, type_graphql_1.Arg('value')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Number]),
+    __metadata("design:returntype", Promise)
+], PostResolver.prototype, "vote", null);
 PostResolver = __decorate([
-    type_graphql_1.Resolver()
+    type_graphql_1.Resolver(Post_1.Post)
 ], PostResolver);
 exports.PostResolver = PostResolver;
 //# sourceMappingURL=post.js.map

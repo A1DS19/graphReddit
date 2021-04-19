@@ -5,11 +5,11 @@ import { withUrqlClient } from 'next-urql';
 import { useRouter } from 'next/dist/client/router';
 import React from 'react';
 import { InputField } from '../../components/common/InputField';
-import { Wrapper } from '../../components/Wrapper';
 import { useLoginUserMutation } from '../../generated/graphql';
 import { toErrorMap } from '../../util/2ErrorMap';
 import { createUrqlClient } from '../../util/createUrqlClient';
 import NextLink from 'next/link';
+import { Layout } from '../../components/Layout';
 
 interface loginProps {}
 
@@ -24,7 +24,7 @@ export const login: React.FC<loginProps> = ({}) => {
   const [, register] = useLoginUserMutation();
 
   return (
-    <Wrapper variant='small'>
+    <Layout variant='small'>
       <Formik
         initialValues={{ email: '', password: '' }}
         onSubmit={async (values: UserInput, helpers: FormikHelpers<UserInput>) => {
@@ -37,7 +37,13 @@ export const login: React.FC<loginProps> = ({}) => {
 
           if (!data?.loginUser?.errors) {
             helpers.resetForm();
-            router.push('/');
+            //basado en el query param va a decidir despues del login donde
+            //va a ir si al index o donde diga el next.
+            if (typeof router.query.next === 'string') {
+              router.push(router.query.next);
+            } else {
+              router.push('/');
+            }
           }
 
           helpers.setSubmitting(false);
@@ -75,7 +81,7 @@ export const login: React.FC<loginProps> = ({}) => {
           );
         }}
       </Formik>
-    </Wrapper>
+    </Layout>
   );
 };
 

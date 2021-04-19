@@ -1,0 +1,8 @@
+query Posts($limit: Int!, $cursor: DateTime) {
+  getPosts(limit: $limit, cursor: $cursor) {
+    posts {
+      ...PostSnippet
+    }
+    hasMore
+  }
+}
