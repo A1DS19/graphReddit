@@ -1,5 +1,5 @@
 import { User, UserModel } from '../../models/User';
-import { MyContext } from '../../types';
+import { MyContext } from '../../types/types';
 import argon2 from 'argon2';
 import {
   Arg,

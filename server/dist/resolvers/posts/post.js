@@ -51,7 +51,7 @@ let PostResolver = class PostResolver {
     }
     getPost(postId) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield Post_1.PostModel.findById(postId);
+            return yield Post_1.PostModel.findById(postId).populate('creator');
         });
     }
     createPost(input, { req }) {
@@ -61,22 +61,39 @@ let PostResolver = class PostResolver {
             return post;
         });
     }
-    updatePost(input) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const post = yield Post_1.PostModel.findById(input.id);
-            if (!post) {
-                return null;
-            }
-            if (typeof input.title !== 'undefined') {
-                post.title = input.title;
-                yield post.save();
-            }
-            return post;
-        });
-    }
-    deletePost(postId) {
+    updatePost({ req }, input) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                const post = yield Post_1.PostModel.findById(input.id);
+                if (((_a = post === null || post === void 0 ? void 0 : post.creator) === null || _a === void 0 ? void 0 : _a.toString()) !== req.session.userId) {
+                    throw new Error('NO ES EL DUENO');
+                }
+                if (!post) {
+                    return null;
+                }
+                const updatedPost = yield Post_1.PostModel.findByIdAndUpdate(input.id, input, {
+                    new: true,
+                });
+                return updatedPost;
+            }
+            catch (err) {
+                console.error(err.message);
+                return null;
+            }
+        });
+    }
+    deletePost({ req }, postId) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const post = yield Post_1.PostModel.findById(postId).select('creator');
+                if (((_a = post === null || post === void 0 ? void 0 : post.creator) === null || _a === void 0 ? void 0 : _a.toString()) !== req.session.userId) {
+                    throw new Error('NO ES EL DUENO');
+                }
+                yield User_1.UserModel.findByIdAndUpdate(req.session.userId, {
+                    $pull: { votedPosts: { postId } },
+                });
                 yield Post_1.PostModel.deleteOne({ _id: postId });
                 return true;
             }
@@ -154,17 +171,19 @@ __decorate([
 __decorate([
     type_graphql_1.Mutation(() => Post_1.Post, { nullable: true }),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg('input')),
+    __param(0, type_graphql_1.Ctx()),
+    __param(1, type_graphql_1.Arg('input')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [types_1.updatePostInput]),
+    __metadata("design:paramtypes", [Object, types_1.updatePostInput]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "updatePost", null);
 __decorate([
     type_graphql_1.Mutation(() => Boolean),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg('postId')),
+    __param(0, type_graphql_1.Ctx()),
+    __param(1, type_graphql_1.Arg('postId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "deletePost", null);
 __decorate([

@@ -1,11 +1,15 @@
 import { dedupExchange, fetchExchange, stringifyVariables } from 'urql';
 import { cacheExchange, Resolver } from '@urql/exchange-graphcache';
+import { gql } from '@urql/core';
 import {
   LogoutMutation,
   MeQuery,
   MeDocument,
   LoginUserMutation,
   CreateUserMutation,
+  VoteMutationVariables,
+  DeletePostMutation,
+  DeletePostMutationVariables,
 } from '../generated/graphql';
 import { betterUpdateQuery } from './betterUpdateQuery';
 import { pipe, tap } from 'wonka';
@@ -63,8 +67,8 @@ const cursorPagination = (): Resolver => {
   };
 };
 
-export const createUrqlClient = (ssrExchange: any) => ({
-  url: 'http://localhost:5000/graphql',
+export const createUrqlClient = (ssrExchange: any, ctx: any) => ({
+  url: process.env.NEXT_PUBLIC_API,
   fetchOptions: {
     credentials: 'include' as const,
   },
@@ -87,6 +91,39 @@ export const createUrqlClient = (ssrExchange: any) => ({
         //el nombre de cada mutation es el mismo de la
         //funcion del resolver
         Mutation: {
+          deletePost: (_result, args, cache, info) => {
+            cache.invalidate({
+              __typename: 'Post',
+              _id: (args as DeletePostMutationVariables).postId,
+            });
+          },
+          //Update fragment
+          vote: (_result, args, cache, info) => {
+            const { postId, value } = args as VoteMutationVariables;
+            const data = cache.readFragment(
+              gql`
+                fragment _ on Post {
+                  _id
+                  points
+                }
+              `,
+              { _id: postId }
+            );
+
+            if (data) {
+              const newPoints = (data.points as number) + value;
+              cache.writeFragment(
+                gql`
+                  fragment _ on Post {
+                    _id
+                    points
+                  }
+                `,
+                { _id: postId, points: newPoints }
+              );
+            }
+          },
+
           createPost: (_result, args, cache, info) => {
             //actualizar cache al crear post
             //el segundo param es el nombre del Query

@@ -129,7 +129,7 @@ export type User = {
   createdAt: Scalars['DateTime'];
   updatedAt: Scalars['DateTime'];
   email: Scalars['String'];
-  posts: Array<Post>;
+  votedPosts: Array<VotedPost>;
   publicEmail: Scalars['String'];
 };
 
@@ -139,6 +139,12 @@ export type UserResponse = {
   user?: Maybe<User>;
 };
 
+export type VotedPost = {
+  __typename?: 'VotedPost';
+  postId: Scalars['String'];
+  voteValue: Scalars['Float'];
+};
+
 export type CreatePostInput = {
   title: Scalars['String'];
   text: Scalars['String'];
@@ -146,7 +152,8 @@ export type CreatePostInput = {
 
 export type UpdatePostInput = {
   id: Scalars['String'];
-  title: Scalars['String'];
+  title?: Maybe<Scalars['String']>;
+  text?: Maybe<Scalars['String']>;
 };
 
 export type PostSnippetFragment = (
@@ -249,6 +256,29 @@ export type CreatePostMutation = (
   ) }
 );
 
+export type DeletePostMutationVariables = Exact<{
+  postId: Scalars['String'];
+}>;
+
+
+export type DeletePostMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'deletePost'>
+);
+
+export type UpdatePostMutationVariables = Exact<{
+  input: UpdatePostInput;
+}>;
+
+
+export type UpdatePostMutation = (
+  { __typename?: 'Mutation' }
+  & { updatePost?: Maybe<(
+    { __typename?: 'Post' }
+    & Pick<Post, '_id' | 'title' | 'text' | 'textSnippet' | 'createdAt' | 'updatedAt'>
+  )> }
+);
+
 export type VoteMutationVariables = Exact<{
   value: Scalars['Float'];
   postId: Scalars['String'];
@@ -267,7 +297,28 @@ export type MeQuery = (
   { __typename?: 'Query' }
   & { me?: Maybe<(
     { __typename?: 'User' }
+    & { votedPosts: Array<(
+      { __typename?: 'VotedPost' }
+      & Pick<VotedPost, 'postId' | 'voteValue'>
+    )> }
     & SimpleUserFragment
+  )> }
+);
+
+export type PostQueryVariables = Exact<{
+  postId: Scalars['String'];
+}>;
+
+
+export type PostQuery = (
+  { __typename?: 'Query' }
+  & { getPost?: Maybe<(
+    { __typename?: 'Post' }
+    & Pick<Post, '_id' | 'title' | 'text' | 'createdAt'>
+    & { creator: (
+      { __typename?: 'User' }
+      & Pick<User, '_id' | 'email'>
+    ) }
   )> }
 );
 
@@ -387,6 +438,31 @@ export const CreatePostDocument = gql`
 export function useCreatePostMutation() {
   return Urql.useMutation<CreatePostMutation, CreatePostMutationVariables>(CreatePostDocument);
 };
+export const DeletePostDocument = gql`
+    mutation DeletePost($postId: String!) {
+  deletePost(postId: $postId)
+}
+    `;
+
+export function useDeletePostMutation() {
+  return Urql.useMutation<DeletePostMutation, DeletePostMutationVariables>(DeletePostDocument);
+};
+export const UpdatePostDocument = gql`
+    mutation UpdatePost($input: updatePostInput!) {
+  updatePost(input: $input) {
+    _id
+    title
+    text
+    textSnippet
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export function useUpdatePostMutation() {
+  return Urql.useMutation<UpdatePostMutation, UpdatePostMutationVariables>(UpdatePostDocument);
+};
 export const VoteDocument = gql`
     mutation Vote($value: Float!, $postId: String!) {
   vote(value: $value, postId: $postId)
@@ -400,12 +476,34 @@ export const MeDocument = gql`
     query Me {
   me {
     ...SimpleUser
+    votedPosts {
+      postId
+      voteValue
+    }
   }
 }
     ${SimpleUserFragmentDoc}`;
 
 export function useMeQuery(options: Omit<Urql.UseQueryArgs<MeQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<MeQuery>({ query: MeDocument, ...options });
+};
+export const PostDocument = gql`
+    query Post($postId: String!) {
+  getPost(postId: $postId) {
+    _id
+    title
+    text
+    creator {
+      _id
+      email
+    }
+    createdAt
+  }
+}
+    `;
+
+export function usePostQuery(options: Omit<Urql.UseQueryArgs<PostQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<PostQuery>({ query: PostDocument, ...options });
 };
 export const PostsDocument = gql`
     query Posts($limit: Int!, $cursor: DateTime) {

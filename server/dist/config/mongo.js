@@ -16,7 +16,7 @@ exports.INIT_DB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const INIT_DB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield mongoose_1.default.connect(process.env.MONGO_URI, {
+        yield mongoose_1.default.connect(process.env.DATABASE_URL, {
             dbName: 'graphReddit',
             useNewUrlParser: true,
             useUnifiedTopology: true,

@@ -29,9 +29,10 @@ const PORT = process.env.PORT || 5000;
 (() => __awaiter(void 0, void 0, void 0, function* () {
     const app = express_1.default();
     const RedisStore = connect_redis_1.default(express_session_1.default);
-    const redisClient = new ioredis_1.default();
+    const redisClient = new ioredis_1.default(process.env.REDIS_URL);
+    app.set('proxy', 1);
     app.use(cors_1.default({
-        origin: 'http://localhost:3000',
+        origin: process.env.CORS_ORIGIN,
         credentials: true,
     }));
     app.use(express_session_1.default({

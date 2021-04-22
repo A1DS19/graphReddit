@@ -3,12 +3,11 @@ import { Button } from '@chakra-ui/react';
 import Link from 'next/link';
 import React, { Fragment } from 'react';
 import { useLogoutMutation, useMeQuery } from '../generated/graphql';
-import { isServer } from '../util/isServer';
 
 interface NavProps {}
 
 export const Nav: React.FC<NavProps> = ({}) => {
-  const [{ data, fetching }] = useMeQuery({ pause: isServer() });
+  const [{ data, fetching }] = useMeQuery();
   const [{ fetching: logoutFetching }, logout] = useLogoutMutation();
   let body = null;
 

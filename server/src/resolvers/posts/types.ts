@@ -3,20 +3,23 @@ import { Field, InputType, ObjectType } from 'type-graphql';
 
 @InputType()
 export class createPostInput {
-  @Field()
+  @Field(() => String)
   title!: string;
 
-  @Field()
+  @Field(() => String)
   text!: string;
 }
 
 @InputType()
 export class updatePostInput {
-  @Field()
+  @Field(() => String)
   id!: string;
 
-  @Field()
+  @Field(() => String, { nullable: true })
   title?: string;
+
+  @Field(() => String, { nullable: true })
+  text?: string;
 }
 
 @ObjectType()

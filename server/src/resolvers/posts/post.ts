@@ -11,12 +11,11 @@ import {
   Root,
 } from 'type-graphql';
 import { createPostInput, PaginatedPosts, updatePostInput } from './types';
-import { MyContext } from 'src/types';
+import { MyContext } from 'src/types/types';
 import { isAuth } from '../../middleware/isAuth';
 import { FilterQuery } from 'mongoose';
-import { DocumentType, post } from '@typegoose/typegoose';
-import { sleep } from '../..//util/sleep';
-import { User, UserModel, VotedPost } from '../../models/User';
+import { DocumentType } from '@typegoose/typegoose';
+import { UserModel, VotedPost } from '../../models/User';
 
 @Resolver(Post)
 export class PostResolver {
@@ -61,7 +60,7 @@ export class PostResolver {
 
   @Query(() => Post, { nullable: true })
   async getPost(@Arg('postId', () => String) postId: string): Promise<Post | null> {
-    return await PostModel.findById(postId);
+    return await PostModel.findById(postId).populate('creator');
   }
 
   @Mutation(() => Post)
@@ -77,25 +76,48 @@ export class PostResolver {
 
   @Mutation(() => Post, { nullable: true })
   @UseMiddleware(isAuth)
-  async updatePost(@Arg('input') input: updatePostInput): Promise<Post | null> {
-    const post = await PostModel.findById(input.id);
+  async updatePost(
+    @Ctx() { req }: MyContext,
+    @Arg('input') input: updatePostInput
+  ): Promise<Post | null> {
+    try {
+      const post = await PostModel.findById(input.id);
 
-    if (!post) {
+      if (post?.creator?.toString() !== req.session.userId) {
+        throw new Error('NO ES EL DUENO');
+      }
+
+      if (!post) {
+        return null;
+      }
+
+      const updatedPost = await PostModel.findByIdAndUpdate(input.id, input, {
+        new: true,
+      });
+
+      return updatedPost;
+    } catch (err) {
+      console.error(err.message);
       return null;
     }
-
-    if (typeof input.title !== 'undefined') {
-      post.title = input.title;
-      await post.save();
-    }
-
-    return post;
   }
 
   @Mutation(() => Boolean)
   @UseMiddleware(isAuth)
-  async deletePost(@Arg('postId') postId: string): Promise<Boolean> {
+  async deletePost(
+    @Ctx() { req }: MyContext,
+    @Arg('postId') postId: string
+  ): Promise<Boolean> {
     try {
+      const post = await PostModel.findById(postId).select('creator');
+
+      if (post?.creator?.toString() !== req.session.userId) {
+        throw new Error('NO ES EL DUENO');
+      }
+
+      await UserModel.findByIdAndUpdate(req.session.userId, {
+        $pull: { votedPosts: { postId } },
+      });
       await PostModel.deleteOne({ _id: postId });
       return true;
     } catch (err) {

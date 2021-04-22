@@ -15,11 +15,11 @@ const type_graphql_1 = require("type-graphql");
 let createPostInput = class createPostInput {
 };
 __decorate([
-    type_graphql_1.Field(),
+    type_graphql_1.Field(() => String),
     __metadata("design:type", String)
 ], createPostInput.prototype, "title", void 0);
 __decorate([
-    type_graphql_1.Field(),
+    type_graphql_1.Field(() => String),
     __metadata("design:type", String)
 ], createPostInput.prototype, "text", void 0);
 createPostInput = __decorate([
@@ -29,13 +29,17 @@ exports.createPostInput = createPostInput;
 let updatePostInput = class updatePostInput {
 };
 __decorate([
-    type_graphql_1.Field(),
+    type_graphql_1.Field(() => String),
     __metadata("design:type", String)
 ], updatePostInput.prototype, "id", void 0);
 __decorate([
-    type_graphql_1.Field(),
+    type_graphql_1.Field(() => String, { nullable: true }),
     __metadata("design:type", String)
 ], updatePostInput.prototype, "title", void 0);
+__decorate([
+    type_graphql_1.Field(() => String, { nullable: true }),
+    __metadata("design:type", String)
+], updatePostInput.prototype, "text", void 0);
 updatePostInput = __decorate([
     type_graphql_1.InputType()
 ], updatePostInput);

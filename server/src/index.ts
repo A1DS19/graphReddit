@@ -23,11 +23,13 @@ declare module 'express-session' {
 (async () => {
   const app = express();
   const RedisStore = connectRedis(session);
-  const redisClient = new Redis();
+  const redisClient = new Redis(process.env.REDIS_URL);
 
+  //para que cookies y sessions sirvan
+  app.set('proxy', 1);
   app.use(
     cors({
-      origin: 'http://localhost:3000',
+      origin: process.env.CORS_ORIGIN,
       credentials: true,
     })
   );

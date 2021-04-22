@@ -1,0 +1,10 @@
+mutation UpdatePost($input: updatePostInput!) {
+  updatePost(input: $input) {
+    _id
+    title
+    text
+    textSnippet
+    createdAt
+    updatedAt
+  }
+}
